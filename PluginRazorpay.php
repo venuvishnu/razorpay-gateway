@@ -158,6 +158,21 @@ class PluginRazorpay extends GatewayPlugin
                 try {
                     $payment = $api->payment->fetch($razorpay_payment_id); // Returns a particular payment
                     $pricePaid = sprintf("%01.2f", round(($payment->amount / 100), 2)); // paise in rupees
+
+                    // If payment is authorized but not captured, capture it
+                    if ($payment->status === 'authorized') {
+                        try {
+                            $payment->capture(array('amount' => $payment->amount));
+                            // Refetch to confirm capture
+                            $payment = $api->payment->fetch($razorpay_payment_id);
+                            if ($payment->status !== 'captured') {
+                                throw new Exception('Payment capture failed');
+                            }
+                        } catch (Exception $e) {
+                            $success = false;
+                            $error = 'Razorpay Error : Capture failed - ' . $e->getMessage();
+                        }
+                    }
                 } catch (Exception $e) {
                     $pricePaid = $params['invoiceTotal'];
                 }
