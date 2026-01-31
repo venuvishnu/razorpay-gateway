@@ -162,9 +162,14 @@ class PluginRazorpay extends GatewayPlugin
                     // If payment is authorized but not captured, capture it
                     if ($payment->status === 'authorized') {
                         try {
-                            $payment->capture(array('amount' => $payment->amount));
+                            $payment->capture(array(
+                                'amount'   => $payment->amount,
+                                'currency' => $payment->currency
+                            ));
+
                             // Refetch to confirm capture
                             $payment = $api->payment->fetch($razorpay_payment_id);
+
                             if ($payment->status !== 'captured') {
                                 throw new Exception('Payment capture failed');
                             }
@@ -231,7 +236,7 @@ class PluginRazorpay extends GatewayPlugin
                 $orderData = array(
                     'receipt'         => $args['invoiceId'],
                     'amount'          => sprintf("%01.2f", round($args['invoiceBalanceDue'], 2)) * 100, // rupees in paise
-                    'currency'        => 'INR',
+                    'currency'        => $args['currency'],
                     'payment_capture' => 1 // auto capture
                 );
                 $razorpayOrder = $api->order->create($orderData);
